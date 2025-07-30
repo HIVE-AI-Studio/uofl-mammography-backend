@@ -1,12 +1,12 @@
 #!/bin/bash
-source "/home/lucasca95/Documentos/laboratory_speed_school/mammograms/backend/venv/bin/activate";
-cd "/home/lucasca95/Documentos/laboratory_speed_school/mammograms/backend/cronjob";
+source "/home/queen/uofl-mammography-backend/venv/bin/activate";
+cd "/home/queen/uofl-mammography-backend/cronjob";
 
 source ../server/.env
 
 tmp_img_path="${SRC_IMG_FOLDER_URL}";
 
-# echo -e "Looking for images in \n\n   ${tmp_img_path}\n"
+echo -e "Looking for images in \n\n   ${tmp_img_path}\n"
 
 
 file_length=$(ls ${tmp_img_path} | wc -l)

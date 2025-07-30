@@ -6,6 +6,9 @@ from flask import Flask, redirect, request, send_file, url_for, send_file
 from flask_restful import Resource, Api
 from flask_cors import CORS
 from flask_mail import Mail, Message
+from apscheduler.schedulers.background import BackgroundScheduler
+import subprocess
+import atexit
 import jwt
 import datetime
 import bcrypt as bb
@@ -37,10 +40,10 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'dcom'}
 app = Flask(__name__)
 app.config["SECRET_KEY"] = 'jv5(78$62-hr+8==+kn4%r*(9g)fubx&&i=3ewc9p*tnkt6u$h'
 # app.config["SERVER_NAME"] = 'add server name'
-app.config["MAIL_SERVER"] = 'smtp.mail.yahoo.com'
-app.config["MAIL_PORT"] = 465
-app.config["MAIL_USE_SSL"] = True
-app.config["MAIL_USE_TLS"] = False
+app.config["MAIL_SERVER"] = 'smtp.gmail.com'
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_USE_SSL"] = False
+app.config["MAIL_USE_TLS"] = True
 app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
 
@@ -59,7 +62,7 @@ while (not db_connected):
         connection = pymysql.connect(
             host='localhost',
             user='root',
-            password='PASSWORD',
+            password='Mammo.1601',
             database='lab',
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
@@ -68,6 +71,23 @@ while (not db_connected):
     except Exception as ee:
         print(f'\nError with db connection\n{ee}')
         sleep(5)
+#=============================================================================
+#   Schedule cronjob
+#==============================================================================
+def run_image_process():
+    try:
+        result = subprocess.run([ox.getenv("CRON_URL") + "process_images.sh"], capture_output = True, text=True)
+        print(f"Script output:\n{result.stdout}")
+        if result.stderr:
+            print(f"Script error:\n{result.stderr}")
+    except Exception as e:
+        print(f"Error running script: {e}")
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=run_image_process, trigger='interval', minutes=10)
+scheduler.start()
+
+atexit.register(lambda: scheduler.shutdown())
 
 # =============================================================================
 #   Route behaviors
@@ -87,11 +107,13 @@ class UploadImage(Resource):
                 os.mkdir(os.getenv('SRC_IMG_FOLDER_URL'))
             except:
                 print(f"\Folder exists already\n")
+                print(os.getenv('SRC_IMG_FOLDER_URL'))
 
             if (not exists(f"{os.getenv('SRC_IMG_FOLDER_URL')}{uploaded_file.filename}")):
                 try:
                     user_email = request.values.get('email')
                     sleep(0.1)
+                    print(user_email)
                     with connection.cursor() as cursor:
                         sql = """INSERT INTO IMAGE(name, user_id)VALUES(
                             %s,
@@ -103,9 +125,9 @@ class UploadImage(Resource):
                         cursor.execute(sql, [uploaded_file.filename, user_email])
                         ret['code'] = cursor.lastrowid
                     connection.commit()
-
+                    print("query done")
                     uploaded_file.save(f"{os.getenv('SRC_IMG_FOLDER_URL')}{str(ret['code'])}_{uploaded_file.filename}")
-                    
+                    print("file save done")
                     msg = Message(subject='Submission confirmation',
                         sender=app.config.get("MAIL_USERNAME"),
                         recipients=[

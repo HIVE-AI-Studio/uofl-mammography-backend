@@ -4,8 +4,12 @@ Created on Thu Feb 17 10:55:26 2022
 
 @authors: Baccouche, Asma; Camino, Lucas.
 """
-
+from flask import Flask, redirect, request, send_file, url_for, send_file
+from flask_restful import Resource, Api
+from flask_cors import CORS
+from flask_mail import Mail, Message
 from time import sleep
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import warnings, pdb, os, sys
 from dotenv import load_dotenv
 load_dotenv('../server/.env')
@@ -27,8 +31,24 @@ from detection import detect
 from segmentation import segment
 from classification import classify
 
+print(os.getcwd())
 
 if (len(sys.argv) > 1):
+    
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = 'jv5(78$62-hr+8==+kn4%r*(9g)fubx&&i=3ewc9p*tnkt6u$h'
+    # app.config["SERVER_NAME"] = 'add server name'
+    app.config["MAIL_SERVER"] = 'smtp.gmail.com'
+    app.config["MAIL_PORT"] = 465
+    app.config["MAIL_USE_SSL"] = True
+    app.config["MAIL_USE_TLS"] = False
+    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+
+    CORS(app, origins="*")
+    api = Api(app)
+    mail = Mail(app)
+    url_sts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
     db_connected = False
     while (not db_connected):
@@ -36,7 +56,7 @@ if (len(sys.argv) > 1):
             connection = pymysql.connect(
                 host='localhost',
                 user='root',
-                password='PASSWORD',
+                password='Mammo.1601',
                 database='lab',
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
@@ -63,24 +83,25 @@ if (len(sys.argv) > 1):
         
     try:
         file = f"{os.getenv('CRON_IMG_URL')}{image_name}"
+        print(file)
         ds = dicom.read_file(file)
         pixel_array_numpy = ds.pixel_array
         image = file.replace('.dcm', '.png')
         cv2.imwrite(image, pixel_array_numpy)
 
-    except:
-        # print("Dicom file is either corrupted or does not exist")
+    except Exception as e:
+        print(f"Dicom file is either corrupted or does not exist: {e}")
         pass
 
     # =============================================================================
     #   Preprocessing
     # =============================================================================
-    img = cv2.imread(f"{file}")
+    img = cv2.imread(f"{file.replace('.dcm', '.png')}")
     
     try:
         img.shape
-    except:
-        # print(image_name, "image either does not exist or image type is not supported !")
+    except Exception as e:
+        print(image_name, f"image either does not exist or image type is not supported: {e}")
         pass
         
     subfoldername = foldername+"/variations"
@@ -95,7 +116,7 @@ if (len(sys.argv) > 1):
         for angle in [0,90,180,270]:
             rotated = ndimage.rotate(img, angle)
             rotated = cv2.resize(rotated, (448,448), cv2.INTER_CUBIC)
-            cv2.imwrite(subfoldername+"/"+str(angle)+"_"+image_name, rotated)
+            cv2.imwrite(subfoldername+"/"+str(angle)+"_"+image_name.replace('.dcm', '.png'), rotated)
 
     try:
         images = glob.glob(subfoldername+"/*.png")
@@ -274,7 +295,7 @@ if (len(sys.argv) > 1):
         birads_diagnosis = classify(task='birads', nb = 5, img=img, path=os.getenv('MODELS_FOLDER_URL'))
         shape_diagnosis = classify(task='shape', nb = 4, img=img, path=os.getenv('MODELS_FOLDER_URL'))
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Classification Error: {e}")
     # print(pathology_diagnosis)
     # print(birads_diagnosis)
     # print(shape_diagnosis)
@@ -293,17 +314,23 @@ if (len(sys.argv) > 1):
             shape = %s
             WHERE id = %s
             """
+            print(pathology_diagnosis, len(pathology_diagnosis))
+            path_diag = pathology_diagnosis
+
+            if len(path_diag) > 6:
+                path_diag = path_diag[:6]
             cursor.execute(sql,
                             [
-                                pathology_diagnosis,
+                                path_diag,
                                 birads_diagnosis.split('-')[1],
                                 shape_diagnosis,
                                 name.split('_')[0]
                             ]
                             )
+
         connection.commit()
     except Exception as e:
-        print(f'Error: {e}')
+        print(f'DB and classification Error: {e}')
 
     # pdb.set_trace();print('\n\nCheckpoint post classification\n')
 
@@ -312,6 +339,34 @@ if (len(sys.argv) > 1):
     f.write("BIRADS score prediction: " + birads_diagnosis+"\n")
     f.write("Shape prediction: " + shape_diagnosis+"\n")
     f.close()
+    try:
+        print(f'Send Email')
+        with connection.cursor() as cursor:
+            sql = """
+            SELECT email FROM APPUSER WHERE id = (SELECT i.user_id FROM IMAGE as i WHERE i.id = %s)
+            """
+            cursor.execute(sql, [name.split('_')[0]])
+            result = cursor.fetchone()
+            print(f'Query result: {result}')
+            if result:
+                msg = Message(subject='Image Processed',
+                    sender=app.config.get("MAIL_USERNAME"),
+                    recipients=[
+                        # 'lucas.camino@louisville.edu',
+                        result['email']
+                        # 'sahar.sinenemehdoui@louisville.edu',
+                    ],
+                    html="""
+                    <h1>Image processed</h1>
+                    <p>Pathology prediction: <strong>""" + pathology_diagnosis +"""</strong>.</p>
+                    <p>BIRADS score prediction: <strong>""" + birads_diagnosis +"""</strong>.</p>
+                    <p>Shape prediction: <strong>""" + shape_diagnosis +"""</strong>.</p>""")
+                mail.send(msg)
+
+            else:
+                raise UserNotFoundError(f"No user found with user id: {name.split('_')[0]}")
+    except Exception as e:
+        print(f'Send email error: {e}, {type(e).__name__} at line {e.__traceback__.tb_lineno} of {__file__}')
 
     try:
         for ff in os.listdir(os.getenv("CRON_VARIATIONS_URL")):
