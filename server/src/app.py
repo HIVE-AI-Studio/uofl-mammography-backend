@@ -76,7 +76,7 @@ while (not db_connected):
 #==============================================================================
 def run_image_process():
     try:
-        result = subprocess.run([ox.getenv("CRON_URL") + "process_images.sh"], capture_output = True, text=True)
+        result = subprocess.run([os.getenv("CRON_URL") + "process_images.sh"], capture_output = True, text=True)
         print(f"Script output:\n{result.stdout}")
         if result.stderr:
             print(f"Script error:\n{result.stderr}")
