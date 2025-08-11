@@ -114,6 +114,16 @@ class UploadImage(Resource):
                     user_email = request.values.get('email')
                     sleep(0.1)
                     print(user_email)
+                    try: 
+                        with connection.cursor() as cursor:
+                            sql = """INSERT INTO APPUSER(email, password) VALUES
+                            (%s, "")"""
+                            cursor.execute(sql, [user_email])
+                        
+                        connection.commit()
+                    except Exception as e:
+                        print("Email already inserted.")
+
                     with connection.cursor() as cursor:
                         sql = """INSERT INTO IMAGE(name, user_id)VALUES(
                             %s,
