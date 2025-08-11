@@ -250,7 +250,7 @@ if (len(sys.argv) > 1):
     imsave(foldername+"/"+name+"_mask_postprocessed.png", new_img_mask)
         
     # =============================================================================
-    #   Draw Countour
+    #   Draw Contour
     # ============================================================================= 
 
     new_img_mask = cv2.imread(foldername+"/"+name+"_mask_postprocessed.png", 0)
@@ -265,7 +265,7 @@ if (len(sys.argv) > 1):
     roi = cv2.imread(foldername+"/"+name+"_detected.png")
     cv2.drawContours(roi, pred_contour, 0, (0, 0, 255), 1)
 
-    cv2.imwrite(foldername+'/'+name+'_countour.png', roi)
+    cv2.imwrite(foldername+'/'+name+'_contour.png', roi)
 
     # =============================================================================
     #   Masked Roi
