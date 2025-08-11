@@ -349,19 +349,20 @@ if (len(sys.argv) > 1):
             result = cursor.fetchone()
             print(f'Query result: {result}')
             if result:
-                msg = Message(subject='Image Processed',
-                    sender=app.config.get("MAIL_USERNAME"),
-                    recipients=[
-                        # 'lucas.camino@louisville.edu',
-                        result['email']
-                        # 'sahar.sinenemehdoui@louisville.edu',
-                    ],
-                    html="""
-                    <h1>Image processed</h1>
-                    <p>Pathology prediction: <strong>""" + pathology_diagnosis +"""</strong>.</p>
-                    <p>BIRADS score prediction: <strong>""" + birads_diagnosis +"""</strong>.</p>
-                    <p>Shape prediction: <strong>""" + shape_diagnosis +"""</strong>.</p>""")
-                mail.send(msg)
+                with app.app_context():
+                    msg = Message(subject='Image Processed',
+                        sender=app.config.get("MAIL_USERNAME"),
+                        recipients=[
+                            # 'lucas.camino@louisville.edu',
+                            result['email']
+                            # 'sahar.sinenemehdoui@louisville.edu',
+                        ],
+                        html="""
+                        <h1>Image processed</h1>
+                        <p>Pathology prediction: <strong>""" + pathology_diagnosis +"""</strong>.</p>
+                        <p>BIRADS score prediction: <strong>""" + birads_diagnosis +"""</strong>.</p>
+                        <p>Shape prediction: <strong>""" + shape_diagnosis +"""</strong>.</p>""")
+                    mail.send(msg)
 
             else:
                 raise UserNotFoundError(f"No user found with user id: {name.split('_')[0]}")
