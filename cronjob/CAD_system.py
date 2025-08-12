@@ -114,8 +114,8 @@ if (len(sys.argv) > 1):
                 os.remove(os.path.join(subfoldername, entry))
             except (FileNotFoundError, OSError):
                 pass
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
     if len(os.listdir(subfoldername)) == 0:
         for angle in [0,90,180,270]:
