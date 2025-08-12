@@ -84,7 +84,7 @@ def run_image_process():
         print(f"Error running script: {e}")
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=run_image_process, trigger='interval', minutes=10)
+scheduler.add_job(func=run_image_process, trigger='interval', minutes=2)
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())

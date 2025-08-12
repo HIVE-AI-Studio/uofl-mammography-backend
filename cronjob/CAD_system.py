@@ -374,6 +374,7 @@ if (len(sys.argv) > 1):
                     
                     image1_path = foldername+"/"+name+"_with_bounding_box.png"
                     image2_path = foldername+"/"+name+"_contour.png"
+                    print(image1_path)
 
                     with open(image1_path, 'rb') as img_file:
                         img_data = img_file.read()
