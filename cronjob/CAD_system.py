@@ -395,6 +395,8 @@ if (len(sys.argv) > 1):
                             headers=[('Content-ID', '<image2>'), ('Content-Disposition', 'inline')]
                         )
 
+                    mail.send(msg)
+
             else:
                 raise UserNotFoundError(f"No user found with user id: {name.split('_')[0]}")
     except Exception as e:
