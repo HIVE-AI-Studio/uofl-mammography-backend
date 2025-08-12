@@ -10,6 +10,7 @@ from flask_cors import CORS
 from flask_mail import Mail, Message
 from time import sleep
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+from email.mime.image import MIMEImage
 import warnings, pdb, os, sys
 from dotenv import load_dotenv
 load_dotenv('../server/.env')
@@ -361,8 +362,37 @@ if (len(sys.argv) > 1):
                         <h1>Image processed</h1>
                         <p>Pathology prediction: <strong>""" + pathology_diagnosis +"""</strong>.</p>
                         <p>BIRADS score prediction: <strong>""" + birads_diagnosis +"""</strong>.</p>
-                        <p>Shape prediction: <strong>""" + shape_diagnosis +"""</strong>.</p>""")
-                    mail.send(msg)
+                        <p>Shape prediction: <strong>""" + shape_diagnosis +"""</strong>.</p>
+                        <p><strong>Prediction Images</strong></p>
+                        <table>
+                            <tr>
+                                <td><img src="cid:image1" style="width:300px;margin:10px;"></td>
+                                <td><img src="cid:image2" style="width:300px;margin:10px;"></td>
+                            </tr>
+                        </table>
+                        """)
+                    
+                    image1_path = foldername+"/"+name+"_with_bounding_box.png"
+                    image2_path = foldername+"/"+name+"_contour.png"
+
+                    with open(image1_path, 'rb') as img_file:
+                        img_data = img_file.read()
+                        msg.attach(
+                            filename=name+"_with_bounding_box.png",
+                            content_type="image/png",
+                            data=img_data,
+                            headers=[('Content-ID', '<image1>'), ('Content-Disposition', 'inline')]
+                        )
+
+                    # Attach second image
+                    with open(image2_path, 'rb') as img_file:
+                        img_data = img_file.read()
+                        msg.attach(
+                            filename=name+"_contour.png",
+                            content_type="image/png",
+                            data=img_data,
+                            headers=[('Content-ID', '<image2>'), ('Content-Disposition', 'inline')]
+                        )
 
             else:
                 raise UserNotFoundError(f"No user found with user id: {name.split('_')[0]}")
