@@ -105,13 +105,17 @@ if (len(sys.argv) > 1):
         print(image_name, f"image either does not exist or image type is not supported: {e}")
         pass
         
-    subfoldername = foldername+"/variations"
+    subfoldername = os.path.join(foldername, "variations")
     try:
         os.mkdir(subfoldername)
+    except FileExistsError:
+        for entry in os.listdir(subfoldername):
+            try:
+                os.remove(os.path.join(subfoldername, entry))
+            except (FileNotFoundError, OSError):
+                pass
     except:
-        # print("Folder already exists!")
-        pass  
-    
+        pass
 
     if len(os.listdir(subfoldername)) == 0:
         for angle in [0,90,180,270]:
