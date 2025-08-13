@@ -132,6 +132,7 @@ class UploadImage(Resource):
                             WHERE u.email=%s)
                         )
                         """
+                        print("Executing query")
                         cursor.execute(sql, [uploaded_file.filename, user_email])
                         ret['code'] = cursor.lastrowid
                     connection.commit()
