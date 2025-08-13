@@ -233,7 +233,7 @@ if (len(sys.argv) > 1):
                     <img src="cid:image" style="width:300px;margin:10px;"></td>
                     """)
                 
-                image_path = os.path.join(os.getenv('CRON_IMG_URL'), image_name)
+                image_path = os.path.join(os.getenv('CRON_IMG_URL'), image_name.replace('.dcm', '.png'))
                 print(image_path)
 
                 with open(image_path, 'rb') as img_file:
