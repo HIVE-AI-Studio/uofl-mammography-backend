@@ -347,15 +347,16 @@ if (len(sys.argv) > 1):
     try:
         print(f'Send Email')
         with connection.cursor() as cursor:
+            image_id = name.split('_')[0]
             sql = """
             SELECT email FROM APPUSER WHERE id = (SELECT i.user_id FROM IMAGE as i WHERE i.id = %s)
             """
-            cursor.execute(sql, [name.split('_')[0]])
+            cursor.execute(sql, [image_id])
             result = cursor.fetchone()
             print(f'Query result: {result}')
             if result:
                 with app.app_context():
-                    msg = Message(subject='Image Processed',
+                    msg = Message(subject='Image ' + image_id + ' processed.',
                         sender=app.config.get("MAIL_USERNAME"),
                         recipients=[
                             # 'lucas.camino@louisville.edu',
@@ -364,6 +365,7 @@ if (len(sys.argv) > 1):
                         ],
                         html="""
                         <h1>Image processed</h1>
+                        <p>Your Image confimation code is <strong>""" + image_id + """</strong>.</p>
                         <p>Pathology prediction: <strong>""" + pathology_diagnosis +"""</strong>.</p>
                         <p>BIRADS score prediction: <strong>""" + birads_diagnosis +"""</strong>.</p>
                         <p>Shape prediction: <strong>""" + shape_diagnosis +"""</strong>.</p>
