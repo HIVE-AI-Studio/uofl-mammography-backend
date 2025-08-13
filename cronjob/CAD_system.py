@@ -211,6 +211,41 @@ if (len(sys.argv) > 1):
         f.close()
 
     else:
+        with connection.cursor() as cursor:
+            image_id = name.split('_')[0]
+            sql = """
+            SELECT email FROM APPUSER WHERE id = (SELECT i.user_id FROM IMAGE as i WHERE i.id = %s)
+            """
+            cursor.execute(sql, [image_id])
+            result = cursor.fetchone()
+            with app.app_context():
+                msg = Message(subject='Image ' + image_id + ' result.',
+                    sender=app.config.get("MAIL_USERNAME"),
+                    recipients=[
+                        # 'lucas.camino@louisville.edu',
+                        result['email']
+                        # 'sahar.sinenemehdoui@louisville.edu',
+                    ],
+                    html="""
+                    <p>Your Image confimation code is <strong>""" + image_id + """</strong>.</p>
+                    <p>We are sorry. Our model could not determine the lesion area from your image.</p>
+                    <br/>
+                    <img src="cid:image" style="width:300px;margin:10px;"></td>
+                    """)
+                
+                image_path = os.path.join(os.getenv('CRON_IMG_URL'), image_name)
+
+                with open(image_path, 'rb') as img_file:
+                    img_data = img_file.read()
+                    msg.attach(
+                        filename=image_name,
+                        content_type="image/png",
+                        data=img_data,
+                        headers=[('Content-ID', '<image>'), ('Content-Disposition', 'inline')]
+                    )
+
+                mail.send(msg)
+
         print("\nPrediction for Mass lesions is not possible, the system could not proceed\n")
         sys.exit(1)
 
@@ -369,7 +404,6 @@ if (len(sys.argv) > 1):
                         <p>Pathology prediction: <strong>""" + pathology_diagnosis +"""</strong>.</p>
                         <p>BIRADS score prediction: <strong>""" + birads_diagnosis +"""</strong>.</p>
                         <p>Shape prediction: <strong>""" + shape_diagnosis +"""</strong>.</p>
-                        <p><strong>Prediction Images</strong></p>
                         <table>
                             <tr>
                                 <td><img src="cid:image1" style="width:300px;margin:10px;"></td>
