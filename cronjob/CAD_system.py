@@ -234,6 +234,7 @@ if (len(sys.argv) > 1):
                     """)
                 
                 image_path = os.path.join(os.getenv('CRON_IMG_URL'), image_name)
+                print(image_path)
 
                 with open(image_path, 'rb') as img_file:
                     img_data = img_file.read()
